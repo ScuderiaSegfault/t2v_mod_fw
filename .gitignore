@@ -1,0 +1,11 @@
+
+build/
+cmake-build-debug/
+cmake-build-release/
+
+managed_components/
+
+.idea/
+
+sdkconfig.ci
+sdkconfig.old
