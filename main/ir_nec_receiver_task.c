@@ -34,6 +34,8 @@
 
 static QueueHandle_t* ir_data_queue;
 
+uint32_t address_config = 0x000110;
+
 /**
  * @brief Saving NEC decode results
  */
@@ -148,6 +150,30 @@ static void parse_and_send_nec_frame(rmt_symbol_word_t* rmt_nec_symbols, size_t 
         if (nec_parse_frame(rmt_nec_symbols))
         {
             ESP_LOGD(TAG_T2V_MODULE_NEC_RCV, "Address=%04X, Command=%04X", s_nec_code_address, s_nec_code_command);
+
+            uint8_t frame_address = *(unsigned char*)&s_nec_code_address;
+            if (frame_address >= 0xf0 && frame_address <= 0xfe) {    // reserved addresses, ignore
+                ESP_LOGW(TAG_T2V_MODULE_NEC_RCV, "Received frame with reserved address %02x", frame_address);
+                break;
+            } else if (frame_address <= 0x0f)   // multicast address, check multicast mask
+            {
+                uint16_t multicast_mask = read_multicast_mask();
+                uint16_t address_bit = 0x01 << frame_address;
+
+                if ((multicast_mask & address_bit) != address_bit)
+                {
+                    ESP_LOGD(TAG_T2V_MODULE_NEC_RCV, "Received frame with unregistered multicast address %02x", frame_address);
+                    break;
+                }
+            } else if (frame_address != 0xff)   // only unicast addresses and broadcast remaining, broadcast is always forwarded
+            {
+                uint8_t unicast_address = read_unicast_address();
+                if (unicast_address != frame_address)
+                {
+                    ESP_LOGD(TAG_T2V_MODULE_NEC_RCV, "Received frame for different unicast address %02x", frame_address);
+                    break;
+                }
+            }
 
             unsigned char data[4];
             data[1] = *((unsigned char*)&s_nec_code_address + 1);
