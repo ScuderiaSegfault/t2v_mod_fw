@@ -171,7 +171,7 @@ usbd_class_driver_t const *usbd_app_driver_get_cb(uint8_t *driver_count) {
  * For Linux-based Hosts: Reflects the SetConfiguration() request from the Host Driver.
  * For Win-based Hosts: SetConfiguration() request is present only with available Class in device descriptor.
  */
-void device_event_handler(tinyusb_event_t *event, void *arg)
+void device_event_handler(tinyusb_event_t *event, __unused void *arg)
 {
     switch (event->id) {
     case TINYUSB_EVENT_ATTACHED:

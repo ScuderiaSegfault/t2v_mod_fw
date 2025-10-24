@@ -1,9 +1,13 @@
 # T2V Firmware
 
+## Bill of Materials
+
+* [ESP32-P4-NANO](https://www.waveshare.com/esp32-p4-nano.htm)
+
 TODOs:
 
 - [ ] store configuration of addresses in NVS
-
+- [ ] allow address configuration with USB 
 
 
 

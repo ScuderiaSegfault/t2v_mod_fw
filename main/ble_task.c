@@ -34,13 +34,6 @@ static bool notify_ir_data = false;
 static esp_gatt_if_t notify_ir_gatts_if;
 static uint16_t notify_ir_conn_id;
 
-typedef struct
-{
-    uint8_t* prepare_buf;
-    int prepare_len;
-} prepare_type_env_t;
-
-static prepare_type_env_t prepare_write_env;
 
 static uint8_t service_uuid[16] = {
     /* LSB <--------------------------------------------------------------------------------> MSB */
@@ -142,10 +135,8 @@ static const uint8_t char_ir_data_name[] = "IR Data";
 static const uint8_t char_unicast_name[] = "Unicast Address";
 static const uint8_t char_multicast_name[] = "Multicast Mask";
 static const uint8_t char_ccc[2] = {0x00, 0x00};
-static const uint8_t team_name[] = "Scuderia Segfault";
-static const uint8_t car_name[5] = "car7";
-static uint8_t unicast_address = 0x10;
-static uint16_t multicast_mask = 0x0008;
+static const uint8_t team_name[] = TEAM_NAME;
+static const uint8_t car_id[] = CAR_ID;
 
 static uint16_t gatt_db_handle_table[LAST_IDX];
 
@@ -202,7 +193,7 @@ static const esp_gatts_attr_db_t gatt_db[LAST_IDX] =
     {
         {ESP_GATT_AUTO_RSP}, {
             ESP_UUID_LEN_16, (uint8_t*)&CHAR_CAR_NAME, ESP_GATT_PERM_READ,
-            CHAR_CAR_NAME_MAX_LENGTH, sizeof(car_name), (uint8_t*)car_name
+            CHAR_CAR_NAME_MAX_LENGTH, sizeof(car_id), (uint8_t*)car_id
         }
     },
 
@@ -229,7 +220,7 @@ static const esp_gatts_attr_db_t gatt_db[LAST_IDX] =
     {
         {ESP_GATT_AUTO_RSP}, {
             ESP_UUID_LEN_16, (uint8_t*)&CHAR_UNICAST_WR, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
-            CHAR_UNICAST_MAX_LENGTH, sizeof(unicast_address), &unicast_address
+            CHAR_UNICAST_MAX_LENGTH, 1, (uint8_t*)&address_config
         }
     },
 
@@ -256,7 +247,7 @@ static const esp_gatts_attr_db_t gatt_db[LAST_IDX] =
     {
         {ESP_GATT_RSP_BY_APP}, {
             ESP_UUID_LEN_16, (uint8_t*)&CHAR_MULTICAST_WR, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
-            CHAR_MULTICAST_MAX_LENGTH, sizeof(multicast_mask), (uint8_t*)&multicast_mask
+            CHAR_MULTICAST_MAX_LENGTH, 2, ((uint8_t*)&address_config + 1)
         }
     },
 
@@ -312,14 +303,14 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
     switch (event)
     {
     case ESP_GAP_BLE_ADV_DATA_SET_COMPLETE_EVT:
-        adv_config_done &= (~ADV_CONFIG_FLAG);
+        adv_config_done &= ~ADV_CONFIG_FLAG;
         if (adv_config_done == 0)
         {
             esp_ble_gap_start_advertising(&adv_params);
         }
         break;
     case ESP_GAP_BLE_SCAN_RSP_DATA_SET_COMPLETE_EVT:
-        adv_config_done &= (~SCAN_RSP_CONFIG_FLAG);
+        adv_config_done &= ~SCAN_RSP_CONFIG_FLAG;
         if (adv_config_done == 0)
         {
             esp_ble_gap_start_advertising(&adv_params);
@@ -358,103 +349,6 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
     }
 }
 
-void prepare_write_event_env(esp_gatt_if_t gatts_if, prepare_type_env_t* prepare_write_env,
-                             esp_ble_gatts_cb_param_t* param)
-{
-    ESP_LOGD(TAG_T2V_MODULE_BLE, "prepare write, handle = %d, value len = %d", param->write.handle, param->write.len);
-    esp_gatt_status_t status = ESP_GATT_OK;
-    if (param->write.offset > PREPARE_BUF_MAX_SIZE)
-    {
-        status = ESP_GATT_INVALID_OFFSET;
-    }
-    else if ((param->write.offset + param->write.len) > PREPARE_BUF_MAX_SIZE)
-    {
-        status = ESP_GATT_INVALID_ATTR_LEN;
-    }
-
-    if (status == ESP_GATT_OK && prepare_write_env->prepare_buf == NULL)
-    {
-        prepare_write_env->prepare_buf = (uint8_t*)malloc(PREPARE_BUF_MAX_SIZE * sizeof(uint8_t));
-        prepare_write_env->prepare_len = 0;
-        if (prepare_write_env->prepare_buf == NULL)
-        {
-            ESP_LOGE(TAG_T2V_MODULE_BLE, "%s, Gatt_server prep no mem", __func__);
-            status = ESP_GATT_NO_RESOURCES;
-        }
-    }
-
-    /*send response when param->write.need_rsp is true */
-    if (param->write.need_rsp)
-    {
-        esp_gatt_rsp_t* gatt_rsp = (esp_gatt_rsp_t*)malloc(sizeof(esp_gatt_rsp_t));
-        if (gatt_rsp != NULL)
-        {
-            gatt_rsp->attr_value.len = param->write.len;
-            gatt_rsp->attr_value.handle = param->write.handle;
-            gatt_rsp->attr_value.offset = param->write.offset;
-            gatt_rsp->attr_value.auth_req = ESP_GATT_AUTH_REQ_NONE;
-            memcpy(gatt_rsp->attr_value.value, param->write.value, param->write.len);
-            esp_err_t response_err = esp_ble_gatts_send_response(gatts_if, param->write.conn_id, param->write.trans_id,
-                                                                 status, gatt_rsp);
-            if (response_err != ESP_OK)
-            {
-                ESP_LOGE(TAG_T2V_MODULE_BLE, "Send response error");
-            }
-            free(gatt_rsp);
-        }
-        else
-        {
-            ESP_LOGE(TAG_T2V_MODULE_BLE, "%s, malloc failed, and no resource to send response", __func__);
-            status = ESP_GATT_NO_RESOURCES;
-        }
-    }
-    if (status != ESP_GATT_OK)
-    {
-        return;
-    }
-    memcpy(prepare_write_env->prepare_buf + param->write.offset,
-           param->write.value,
-           param->write.len);
-    prepare_write_env->prepare_len += param->write.len;
-}
-
-uint8_t long_write[16] = {
-    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF
-};
-
-void exec_write_event_env(prepare_type_env_t* prepare_write_env, esp_ble_gatts_cb_param_t* param)
-{
-    if (param->exec_write.exec_write_flag == ESP_GATT_PREP_WRITE_EXEC && prepare_write_env->prepare_buf)
-    {
-        if (prepare_write_env->prepare_len == 256)
-        {
-            bool long_write_success = true;
-            for (uint16_t i = 0; i < prepare_write_env->prepare_len; i++)
-            {
-                if (prepare_write_env->prepare_buf[i] != long_write[i % 16])
-                {
-                    long_write_success = false;
-                    break;
-                }
-            }
-            if (long_write_success)
-            {
-                ESP_LOGD(TAG_T2V_MODULE_BLE, "(4) ***** long write success ***** ");
-            }
-        }
-    }
-    else
-    {
-        ESP_LOGD(TAG_T2V_MODULE_BLE, "ESP_GATT_PREP_WRITE_CANCEL");
-    }
-    if (prepare_write_env->prepare_buf)
-    {
-        free(prepare_write_env->prepare_buf);
-        prepare_write_env->prepare_buf = NULL;
-    }
-    prepare_write_env->prepare_len = 0;
-}
-
 static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if,
                                         esp_ble_gatts_cb_param_t* param)
 {
@@ -462,7 +356,7 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
     {
     case ESP_GATTS_REG_EVT:
         {
-            esp_err_t set_dev_name_ret = esp_ble_gap_set_device_name(DEVICE_NAME);
+            const esp_err_t set_dev_name_ret = esp_ble_gap_set_device_name(DEVICE_NAME);
             if (set_dev_name_ret)
             {
                 ESP_LOGE(TAG_T2V_MODULE_BLE, "set device name failed, error code = %x", set_dev_name_ret);
@@ -481,7 +375,7 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                 ESP_LOGE(TAG_T2V_MODULE_BLE, "config scan response data failed, error code = %x", ret);
             }
             adv_config_done |= SCAN_RSP_CONFIG_FLAG;
-            esp_err_t create_attr_ret = esp_ble_gatts_create_attr_tab(gatt_db, gatts_if, LAST_IDX, SVC_INST_ID);
+            const esp_err_t create_attr_ret = esp_ble_gatts_create_attr_tab(gatt_db, gatts_if, LAST_IDX, SVC_INST_ID);
             if (create_attr_ret)
             {
                 ESP_LOGE(TAG_T2V_MODULE_BLE, "create attr table failed, error code = %x", create_attr_ret);
@@ -492,14 +386,13 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
         ESP_LOGD(TAG_T2V_MODULE_BLE, "ESP_GATTS_READ_EVT");
         if (gatt_db_handle_table[IDX_CHAR_VAL_UNICAST] == param->read.handle && param->read.need_rsp)
         {
-            esp_gatt_rsp_t rsp;
-            memset(&rsp, 0, sizeof(esp_gatt_rsp_t));
+            esp_gatt_rsp_t rsp = {0};
 
             rsp.attr_value.handle = param->read.handle;
             rsp.attr_value.len = 1;
             rsp.attr_value.value[0] = read_unicast_address();
 
-            esp_err_t ret = esp_ble_gatts_send_response(
+            const esp_err_t ret = esp_ble_gatts_send_response(
                 gatts_if,
                 param->read.conn_id,
                 param->read.trans_id,
@@ -513,8 +406,7 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
             }
         } else if (gatt_db_handle_table[IDX_CHAR_VAL_MULTICAST] == param->read.handle && param->read.need_rsp)
         {
-            esp_gatt_rsp_t rsp;
-            memset(&rsp, 0, sizeof(esp_gatt_rsp_t));
+            esp_gatt_rsp_t rsp = {0};
 
             rsp.attr_value.handle = param->read.handle;
             rsp.attr_value.len = 2;
@@ -522,7 +414,7 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
             rsp.attr_value.value[0] = ((uint8_t*)&multicast_mask_2)[0];
             rsp.attr_value.value[1] = ((uint8_t*)&multicast_mask_2)[1];
 
-            esp_err_t ret = esp_ble_gatts_send_response(
+            const esp_err_t ret = esp_ble_gatts_send_response(
                 gatts_if,
                 param->read.conn_id,
                 param->read.trans_id,
@@ -542,7 +434,7 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
             // the data length of gattc write  must be less than GATTS_EXAMPLE_CHAR_VAL_LEN_MAX.
             if (gatt_db_handle_table[IDX_CHAR_CFG_IR_DATA_2] == param->write.handle && param->write.len == 2)
             {
-                uint16_t descr_value = param->write.value[1] << 8 | param->write.value[0];
+                const uint16_t descr_value = param->write.value[1] << 8 | param->write.value[0];
                 uint8_t notify_data[2];
                 notify_data[0] = 0xAA;
                 notify_data[1] = 0xBB;
@@ -578,13 +470,13 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
 
             if (gatt_db_handle_table[IDX_CHAR_VAL_UNICAST] == param->write.handle && param->write.len == 1)
             {
-                unicast_address = param->write.value[0];
+                const uint8_t unicast_address = param->write.value[0];
                 write_unicast_address(unicast_address);
                 ESP_LOGI(TAG_T2V_MODULE_BLE, "updated unicast address: %02x", param->write.value[0]);
             }
             else if (gatt_db_handle_table[IDX_CHAR_VAL_MULTICAST] == param->write.handle && param->write.len == 2)
             {
-                multicast_mask = *(uint16_t*)param->write.value;
+                const uint16_t multicast_mask = *(uint16_t*)param->write.value;
                 write_multicast_mask(multicast_mask);
                 ESP_LOGI(TAG_T2V_MODULE_BLE, "updated multicast mask: %04x", *(uint16_t*)param->write.value);
             }
@@ -595,16 +487,10 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                 esp_ble_gatts_send_response(gatts_if, param->write.conn_id, param->write.trans_id, ESP_GATT_OK, NULL);
             }
         }
-        else
-        {
-            /* handle prepare write */
-            prepare_write_event_env(gatts_if, &prepare_write_env, param);
-        }
         break;
     case ESP_GATTS_EXEC_WRITE_EVT:
         // the length of gattc prepare write data must be less than GATTS_DEMO_CHAR_VAL_LEN_MAX.
         ESP_LOGD(TAG_T2V_MODULE_BLE, "ESP_GATTS_EXEC_WRITE_EVT");
-        exec_write_event_env(&prepare_write_env, param);
         break;
     case ESP_GATTS_MTU_EVT:
         ESP_LOGD(TAG_T2V_MODULE_BLE, "ESP_GATTS_MTU_EVT, MTU %d", param->mtu.mtu);
@@ -688,8 +574,7 @@ static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_
     }
     do
     {
-        int idx;
-        for (idx = 0; idx < PROFILE_NUM; idx++)
+        for (size_t idx = 0; idx < PROFILE_NUM; idx++)
         {
             /* ESP_GATT_IF_NONE, not specify a certain gatt_if, need to call every profile cb function */
             if (gatts_if == ESP_GATT_IF_NONE || gatts_if == t2v_module_profile_tab[idx].gatts_if)
@@ -707,12 +592,10 @@ static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_
 
 void ble_task_main(void* task_params)
 {
-    QueueHandle_t* ir_data_queue = task_params;
-
-    esp_err_t ret;
+    const QueueHandle_t* ir_data_queue = task_params;
 
     /* Initialize NVS. */
-    ret = nvs_flash_init();
+    esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES)
     {
         ESP_ERROR_CHECK(nvs_flash_erase());
@@ -724,7 +607,7 @@ void ble_task_main(void* task_params)
     hosted_hci_bluedroid_open();
 
     /* get HCI driver operations */
-    esp_bluedroid_hci_driver_operations_t operations = {
+    const esp_bluedroid_hci_driver_operations_t operations = {
         .send = hosted_hci_bluedroid_send,
         .check_send_available = hosted_hci_bluedroid_check_send_available,
         .register_host_callback = hosted_hci_bluedroid_register_host_callback,
@@ -772,7 +655,7 @@ void ble_task_main(void* task_params)
         return;
     }
 
-    esp_err_t local_mtu_ret = esp_ble_gatt_set_local_mtu(500);
+    const esp_err_t local_mtu_ret = esp_ble_gatt_set_local_mtu(500);
     if (local_mtu_ret)
     {
         ESP_LOGE(TAG_T2V_MODULE_BLE, "set local  MTU failed, error code = %x", local_mtu_ret);

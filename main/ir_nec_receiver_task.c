@@ -45,7 +45,7 @@ static uint16_t s_nec_code_command;
 /**
  * @brief Check whether a duration is within expected range
  */
-static inline bool nec_check_in_range(uint32_t signal_duration, uint32_t spec_duration)
+static bool nec_check_in_range(const uint32_t signal_duration, const uint32_t spec_duration)
 {
     return (signal_duration < (spec_duration + IR_NEC_DECODE_MARGIN)) &&
         (signal_duration > (spec_duration - IR_NEC_DECODE_MARGIN));
@@ -54,7 +54,7 @@ static inline bool nec_check_in_range(uint32_t signal_duration, uint32_t spec_du
 /**
  * @brief Check whether a RMT symbol represents NEC logic zero
  */
-static bool nec_parse_logic0(rmt_symbol_word_t* rmt_nec_symbols)
+static bool nec_parse_logic0(const rmt_symbol_word_t* rmt_nec_symbols)
 {
     return nec_check_in_range(rmt_nec_symbols->duration0, NEC_PAYLOAD_ZERO_DURATION_0) &&
         nec_check_in_range(rmt_nec_symbols->duration1, NEC_PAYLOAD_ZERO_DURATION_1);
@@ -63,7 +63,7 @@ static bool nec_parse_logic0(rmt_symbol_word_t* rmt_nec_symbols)
 /**
  * @brief Check whether a RMT symbol represents NEC logic one
  */
-static bool nec_parse_logic1(rmt_symbol_word_t* rmt_nec_symbols)
+static bool nec_parse_logic1(const rmt_symbol_word_t* rmt_nec_symbols)
 {
     return nec_check_in_range(rmt_nec_symbols->duration0, NEC_PAYLOAD_ONE_DURATION_0) &&
         nec_check_in_range(rmt_nec_symbols->duration1, NEC_PAYLOAD_ONE_DURATION_1);
@@ -74,10 +74,10 @@ static bool nec_parse_logic1(rmt_symbol_word_t* rmt_nec_symbols)
  */
 static bool nec_parse_frame(rmt_symbol_word_t* rmt_nec_symbols)
 {
-    rmt_symbol_word_t* cur = rmt_nec_symbols;
+    const rmt_symbol_word_t* cur = rmt_nec_symbols;
     uint16_t address = 0;
     uint16_t command = 0;
-    bool valid_leading_code = nec_check_in_range(cur->duration0, NEC_LEADING_CODE_DURATION_0) &&
+    const bool valid_leading_code = nec_check_in_range(cur->duration0, NEC_LEADING_CODE_DURATION_0) &&
         nec_check_in_range(cur->duration1, NEC_LEADING_CODE_DURATION_1);
     if (!valid_leading_code)
     {
@@ -125,7 +125,7 @@ static bool nec_parse_frame(rmt_symbol_word_t* rmt_nec_symbols)
 /**
  * @brief Check whether the RMT symbols represent NEC repeat code
  */
-static bool nec_parse_frame_repeat(rmt_symbol_word_t* rmt_nec_symbols)
+static bool nec_parse_frame_repeat(const rmt_symbol_word_t* rmt_nec_symbols)
 {
     return nec_check_in_range(rmt_nec_symbols->duration0, NEC_REPEAT_CODE_DURATION_0) &&
         nec_check_in_range(rmt_nec_symbols->duration1, NEC_REPEAT_CODE_DURATION_1);
@@ -151,14 +151,15 @@ static void parse_and_send_nec_frame(rmt_symbol_word_t* rmt_nec_symbols, size_t 
         {
             ESP_LOGD(TAG_T2V_MODULE_NEC_RCV, "Address=%04X, Command=%04X", s_nec_code_address, s_nec_code_command);
 
-            uint8_t frame_address = *(unsigned char*)&s_nec_code_address;
+            const uint8_t frame_address = *(unsigned char*)&s_nec_code_address;
             if (frame_address >= 0xf0 && frame_address <= 0xfe) {    // reserved addresses, ignore
                 ESP_LOGW(TAG_T2V_MODULE_NEC_RCV, "Received frame with reserved address %02x", frame_address);
                 break;
-            } else if (frame_address <= 0x0f)   // multicast address, check multicast mask
+            }
+            if (frame_address <= 0x0f)   // multicast address, check multicast mask
             {
-                uint16_t multicast_mask = read_multicast_mask();
-                uint16_t address_bit = 0x01 << frame_address;
+                const uint16_t multicast_mask = read_multicast_mask();
+                const uint16_t address_bit = 0x01 << frame_address;
 
                 if ((multicast_mask & address_bit) != address_bit)
                 {
@@ -167,7 +168,7 @@ static void parse_and_send_nec_frame(rmt_symbol_word_t* rmt_nec_symbols, size_t 
                 }
             } else if (frame_address != 0xff)   // only unicast addresses and broadcast remaining, broadcast is always forwarded
             {
-                uint8_t unicast_address = read_unicast_address();
+                const uint8_t unicast_address = read_unicast_address();
                 if (unicast_address != frame_address)
                 {
                     ESP_LOGD(TAG_T2V_MODULE_NEC_RCV, "Received frame for different unicast address %02x", frame_address);
@@ -212,8 +213,10 @@ static void parse_and_send_nec_frame(rmt_symbol_word_t* rmt_nec_symbols, size_t 
 
 static bool rmt_rx_done_callback(rmt_channel_handle_t channel, const rmt_rx_done_event_data_t* edata, void* user_data)
 {
+    (void) channel;
+
     BaseType_t high_task_wakeup = pdFALSE;
-    QueueHandle_t receive_queue = (QueueHandle_t)user_data;
+    QueueHandle_t receive_queue = user_data;
     // send the received RMT symbols to the parser task
     xQueueSendFromISR(receive_queue, edata, &high_task_wakeup);
     return high_task_wakeup == pdTRUE;
@@ -224,7 +227,7 @@ void ir_nec_task_main(void* data)
     ir_data_queue = (struct QueueSlice*)data;
 
     ESP_LOGI(TAG_T2V_MODULE_NEC_RCV, "create RMT RX channel");
-    rmt_rx_channel_config_t rx_channel_cfg = {
+    const rmt_rx_channel_config_t rx_channel_cfg = {
         .gpio_num = GPIO_NUM_23,
         .clk_src = RMT_CLK_SRC_DEFAULT,
         .resolution_hz = IR_RESOLUTION_HZ,
@@ -236,13 +239,13 @@ void ir_nec_task_main(void* data)
     ESP_LOGI(TAG_T2V_MODULE_NEC_RCV, "register RX done callback");
     QueueHandle_t receive_queue = xQueueCreate(1, sizeof(rmt_rx_done_event_data_t));
     assert(receive_queue);
-    rmt_rx_event_callbacks_t cbs = {
+    const rmt_rx_event_callbacks_t cbs = {
         .on_recv_done = rmt_rx_done_callback,
     };
     ESP_ERROR_CHECK(rmt_rx_register_event_callbacks(rx_channel, &cbs, receive_queue));
 
     // the following timing requirement is based on NEC protocol
-    rmt_receive_config_t receive_config = {
+    const rmt_receive_config_t receive_config = {
         .signal_range_min_ns = 1250,
         // the shortest duration for NEC signal is 560us, 1250ns < 560us, valid signal won't be treated as noise
         .signal_range_max_ns = 12000000,
@@ -250,7 +253,7 @@ void ir_nec_task_main(void* data)
     };
 
     ESP_LOGI(TAG_T2V_MODULE_NEC_RCV, "install IR NEC encoder");
-    ir_nec_encoder_config_t nec_encoder_cfg = {
+    const ir_nec_encoder_config_t nec_encoder_cfg = {
         .resolution = IR_RESOLUTION_HZ,
     };
     rmt_encoder_handle_t nec_encoder = NULL;
