@@ -13,15 +13,20 @@
 #define TAG_T2V_MODULE_NEC_RCV "t2v_module::nec"
 #define TAG_T2V_MODULE_NEC_DECODER "t2v_module::nec::decoder"
 #define TAG_T2V_MODULE_USB "t2v_module::usb"
+#define TAG_T2V_MODULE_BLE "t2v_module::ble"
 #include <stdint.h>
 
 #include "esp_cpu.h"
+#include "esp_log.h"
+#include "FreeRTOS.h"
+#include "queue.h"
 
 
 // Entry points for tasks
 
 void ir_nec_task_main(void*);
 void usb_device_task_main(void*);
+void ble_task_main(void*);
 
 // Global state
 
@@ -53,15 +58,17 @@ __always_inline void write_unicast_address(uint8_t address)
     {
         local_address_config = address_config;
         new_address_config = (local_address_config & ~0xff) | (uint32_t)address;
+        ESP_LOGD(TAG_T2V_MODULE, "Writing address config old=%08x, new=%08x", local_address_config,
+                 new_address_config);
     }
-    while (esp_cpu_compare_and_set(&address_config, local_address_config, new_address_config));
+    while (!esp_cpu_compare_and_set(&address_config, local_address_config, new_address_config));
 }
 
 __always_inline uint16_t read_multicast_mask()
 {
     uint32_t local_address_config = read_address_config();
 
-    return (uint16_t)(local_address_config & 0xffff << 8) >> 8;
+    return (uint16_t)((local_address_config & 0xffff << 8) >> 8);
 }
 
 __always_inline void write_multicast_mask(uint16_t multicast_mask)
@@ -71,9 +78,20 @@ __always_inline void write_multicast_mask(uint16_t multicast_mask)
     do
     {
         local_address_config = address_config;
-        new_address_config = (local_address_config & ~(0xffff << 8)) | (uint32_t)multicast_mask << 8;
+        new_address_config = (local_address_config & ~(0xffff << 8)) | ((uint32_t)multicast_mask) << 8;
+        ESP_LOGD(TAG_T2V_MODULE, "Writing address config old=%08x, new=%08x", local_address_config,
+                 new_address_config);
     }
-    while (esp_cpu_compare_and_set(&address_config, local_address_config, new_address_config));
+    while (!esp_cpu_compare_and_set(&address_config, local_address_config, new_address_config));
 }
+
+// Shared task structs
+
+struct QueueSlice
+{
+    size_t length;
+    size_t capacity;
+    QueueHandle_t* pointer;
+};
 
 #endif //T2V_MODULE_FW_COMMON_H

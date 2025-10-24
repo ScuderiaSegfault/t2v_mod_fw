@@ -32,7 +32,7 @@
 #define NEC_REPEAT_CODE_DURATION_0   9000
 #define NEC_REPEAT_CODE_DURATION_1   2250
 
-static QueueHandle_t* ir_data_queue;
+static struct QueueSlice* ir_data_queue;
 
 uint32_t address_config = 0x000110;
 
@@ -181,13 +181,16 @@ static void parse_and_send_nec_frame(rmt_symbol_word_t* rmt_nec_symbols, size_t 
             data[3] = *((unsigned char*)&s_nec_code_command + 1);
             data[2] = *(unsigned char*)&s_nec_code_command;
 
-            if (xQueueSendToBack(*ir_data_queue, data, 0))
+            for (size_t i = 0; i < ir_data_queue->length; i++)
             {
-                ESP_LOGD(TAG_T2V_MODULE_NEC_RCV, "NEC IR data sent");
-            }
-            else
-            {
-                ESP_LOGE(TAG_T2V_MODULE_NEC_RCV, "NEC IR data sent failed");
+                if (xQueueSendToBack(ir_data_queue->pointer[i], data, 0))
+                {
+                    ESP_LOGD(TAG_T2V_MODULE_NEC_RCV, "NEC IR data sent");
+                }
+                else
+                {
+                    ESP_LOGE(TAG_T2V_MODULE_NEC_RCV, "NEC IR data sent failed");
+                }
             }
         } else
         {
@@ -218,7 +221,7 @@ static bool rmt_rx_done_callback(rmt_channel_handle_t channel, const rmt_rx_done
 
 void ir_nec_task_main(void* data)
 {
-    ir_data_queue = (QueueHandle_t*)data;
+    ir_data_queue = (struct QueueSlice*)data;
 
     ESP_LOGI(TAG_T2V_MODULE_NEC_RCV, "create RMT RX channel");
     rmt_rx_channel_config_t rx_channel_cfg = {

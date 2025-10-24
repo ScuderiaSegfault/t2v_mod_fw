@@ -1,5 +1,10 @@
 # T2V Firmware
 
+TODOs:
+
+- [ ] store configuration of addresses in NVS
+
+
 
 
 ## Fix for Cache Invalidation

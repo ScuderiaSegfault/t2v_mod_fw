@@ -15,3 +15,11 @@ dependencies:
   #   # All dependencies of `main` are public by default.
   #   public: true
   espressif/esp_tinyusb: '*'
+  espressif/esp_hosted:
+    rules:
+      - if: target in [esp32p4, esp32h2]
+    version: '2.3.2'
+  espressif/esp_wifi_remote:
+    rules:
+      - if: target in [esp32p4, esp32h2]
+    version: '0.15.0'
