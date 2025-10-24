@@ -9,6 +9,8 @@
 #include "freertos/task.h"
 #include "common.h"
 #include "esp_log.h"
+#include "nvs.h"
+#include "nvs_flash.h"
 #include "portmacro.h"
 
 static TaskHandle_t ir_nec_task = NULL;
@@ -23,8 +25,49 @@ static struct QueueSlice queue_slice = {
     .pointer = queues
 };
 
-void app_main(void) {
-    ESP_LOGI(TAG_T2V_MODULE, "RoboRacer T2V Module firmware version %d.%d.%d", FW_VERSION_MAJOR, FW_VERSION_MINOR, FW_VERSION_PATCH);
+void app_main(void)
+{
+    ESP_LOGI(TAG_T2V_MODULE, "RoboRacer T2V Module firmware version %d.%d.%d", FW_VERSION_MAJOR, FW_VERSION_MINOR,
+             FW_VERSION_PATCH);
+
+    ESP_LOGI(TAG_T2V_MODULE, "Restoring configuration");
+
+    ESP_LOGD(TAG_T2V_MODULE, "Reading from NVS");
+    nvs_flash_init();
+    nvs_handle_t nvs_handle;
+    esp_err_t esp_err = nvs_open(T2V_NVS_STORAGE_NAMESPACE, NVS_READWRITE, &nvs_handle);
+    if (esp_err != ESP_OK)
+    {
+        ESP_LOGE(TAG_T2V_MODULE, "Error (%s) opening NVS handle!", esp_err_to_name(esp_err));
+        return;
+    }
+
+    uint32_t nsv_address_config;
+    esp_err = nvs_get_u32(nvs_handle, T2V_NVS_STORAGE_KEY_ADDRESS_CONFIG, &nsv_address_config);
+    if (esp_err == ESP_ERR_NVS_NOT_FOUND)
+    {
+        ESP_LOGI(TAG_T2V_MODULE, "No previous configuration found, initializing configuration.");
+        write_address_config(nvs_handle, 0x80);
+    }
+    else if (esp_err != ESP_OK)
+    {
+        ESP_LOGE(TAG_T2V_MODULE, "Error (%s) opening NVS handle!", esp_err_to_name(esp_err));
+        return;
+    }
+    else
+    {
+        ESP_LOGI(TAG_T2V_MODULE, "Loaded configureation from NVS: %08x", nsv_address_config);
+        write_address_config_bare(nsv_address_config);
+    }
+
+    esp_err = nvs_commit(nvs_handle);
+    if (esp_err != ESP_OK)
+    {
+        ESP_LOGE(TAG_T2V_MODULE, "Error (%s) commiting data to NVS!", esp_err_to_name(esp_err));
+        return;
+    }
+
+    nvs_close(nvs_handle);
 
     queues[0] = xQueueCreate(10, sizeof(uint8_t) * 4);
     queues[1] = xQueueCreate(10, sizeof(uint8_t) * 4);
