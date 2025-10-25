@@ -398,13 +398,14 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                 param->read.trans_id,
                 ESP_GATT_OK,
                 &rsp
-                );
+            );
 
             if (ret)
             {
                 ESP_LOGE(TAG_T2V_MODULE_BLE, "send response failed, error code = %x", ret);
             }
-        } else if (gatt_db_handle_table[IDX_CHAR_VAL_MULTICAST] == param->read.handle && param->read.need_rsp)
+        }
+        else if (gatt_db_handle_table[IDX_CHAR_VAL_MULTICAST] == param->read.handle && param->read.need_rsp)
         {
             esp_gatt_rsp_t rsp = {0};
 
@@ -420,7 +421,7 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                 param->read.trans_id,
                 ESP_GATT_OK,
                 &rsp
-                );
+            );
 
             if (ret)
             {
@@ -670,8 +671,9 @@ void ble_task_main(void* task_params)
         {
             if (notify_ir_data)
             {
-                esp_ble_gatts_send_indicate(notify_ir_gatts_if, notify_ir_conn_id, gatt_db_handle_table[IDX_CHAR_VAL_IR_DATA],
-                                                sizeof(data), data, true);
+                esp_ble_gatts_send_indicate(notify_ir_gatts_if, notify_ir_conn_id,
+                                            gatt_db_handle_table[IDX_CHAR_VAL_IR_DATA],
+                                            sizeof(data), data, true);
             }
         }
     }

@@ -45,11 +45,11 @@ static const tusb_desc_device_qualifier_t device_qualifier_descriptor = {
  */
 const char* string_descriptors[5] = {
     // array of pointer to string descriptors
-    (char[]){0x09, 0x04},  // 0: is supported language is English (0x0409)
-    "TU Wien",             // 1: Manufacturer
-    "Roboracer T2V Module",      // 2: Product
-    "123456",              // 3: Serials, should use chip ID
-    "IR NEC data",  // 4: IR NEC data
+    (char[]){0x09, 0x04}, // 0: is supported language is English (0x0409)
+    "TU Wien", // 1: Manufacturer
+    "Roboracer T2V Module", // 2: Product
+    "123456", // 3: Serials, should use chip ID
+    "IR NEC data", // 4: IR NEC data
 };
 
 static const uint8_t configuration_descriptor[] = {
@@ -67,14 +67,16 @@ static uint8_t itf_num;
 /**
  * @brief called when the driver is initialized
  */
-static void init(void) {
+static void init(void)
+{
     ESP_LOGI(TAG_T2V_MODULE_USB, "Initializing USB driver");
 }
 
 /**
  * @brief called when the device is reset
  */
-static void reset(uint8_t __unused rhport) {
+static void reset(uint8_t __unused rhport)
+{
     itf_num = 0;
 }
 
@@ -82,7 +84,8 @@ static void reset(uint8_t __unused rhport) {
  * @brief called when the host device is opening this device. Based on the selected interface we also have to open(enable)
  * the relevant endpoints.
  */
-static uint16_t open(uint8_t __unused rhport, tusb_desc_interface_t const *itf_desc, uint16_t max_len) {
+static uint16_t open(uint8_t __unused rhport, tusb_desc_interface_t const* itf_desc, uint16_t max_len)
+{
     ESP_LOGI(TAG_T2V_MODULE_USB, "Opening USB device");
     // We only have one interface, so make sure that we open the correct one
     TU_VERIFY(TUSB_CLASS_VENDOR_SPECIFIC == itf_desc->bInterfaceClass &&
@@ -94,7 +97,7 @@ static uint16_t open(uint8_t __unused rhport, tusb_desc_interface_t const *itf_d
     TU_VERIFY(max_len >= drv_len, 0);
 
     // Reinterpret data as byte pointer and skip forward to the next descriptor
-    uint8_t const *p_desc = (uint8_t const *)itf_desc;
+    uint8_t const* p_desc = (uint8_t const*)itf_desc;
     p_desc = tu_desc_next(p_desc);
 
     // The next descriptor MUST be an endpoint descriptor, so it is safe to interpret it as one
@@ -108,7 +111,7 @@ static uint16_t open(uint8_t __unused rhport, tusb_desc_interface_t const *itf_d
 /**
  * @brief not sure when this is called...
  */
-static bool control_request_cb(uint8_t rhport, uint8_t stage, tusb_control_request_t const * request)
+static bool control_request_cb(uint8_t rhport, uint8_t stage, tusb_control_request_t const* request)
 {
     ESP_LOGI(TAG_T2V_MODULE_USB, "Requested control request");
     return true;
@@ -117,23 +120,29 @@ static bool control_request_cb(uint8_t rhport, uint8_t stage, tusb_control_reque
 /**
  * @brief called when a transfer has finished. Result indicates the result of the transfer
  */
-static bool xfer_cb(uint8_t __unused rhport, uint8_t ep_addr, xfer_result_t result, uint32_t xferred_bytes) {
+static bool xfer_cb(uint8_t __unused rhport, uint8_t ep_addr, xfer_result_t result, uint32_t xferred_bytes)
+{
     switch (result)
     {
     case XFER_RESULT_SUCCESS:
-        ESP_LOGD(TAG_T2V_MODULE_USB, "Transfer on endpoint 0x%02x successful (transferred %d bytes)", ep_addr, xferred_bytes);
+        ESP_LOGD(TAG_T2V_MODULE_USB, "Transfer on endpoint 0x%02x successful (transferred %d bytes)", ep_addr,
+                 xferred_bytes);
         break;
     case XFER_RESULT_FAILED:
-        ESP_LOGE(TAG_T2V_MODULE_USB, "Transfer on endpoint 0x%02x failed (transferred %d bytes)", ep_addr, xferred_bytes);
+        ESP_LOGE(TAG_T2V_MODULE_USB, "Transfer on endpoint 0x%02x failed (transferred %d bytes)", ep_addr,
+                 xferred_bytes);
         break;
     case XFER_RESULT_STALLED:
-        ESP_LOGE(TAG_T2V_MODULE_USB, "Transfer on endpoint 0x%02x failed: stalled (transferred %d bytes)", ep_addr, xferred_bytes);
+        ESP_LOGE(TAG_T2V_MODULE_USB, "Transfer on endpoint 0x%02x failed: stalled (transferred %d bytes)", ep_addr,
+                 xferred_bytes);
         break;
     case XFER_RESULT_TIMEOUT:
-        ESP_LOGE(TAG_T2V_MODULE_USB, "Transfer on endpoint 0x%02x timed out (transferred %d bytes)", ep_addr, xferred_bytes);
+        ESP_LOGE(TAG_T2V_MODULE_USB, "Transfer on endpoint 0x%02x timed out (transferred %d bytes)", ep_addr,
+                 xferred_bytes);
         break;
     case XFER_RESULT_INVALID:
-        ESP_LOGE(TAG_T2V_MODULE_USB, "Transfer on endpoint 0x%02x invalid (transferred %d bytes)", ep_addr, xferred_bytes);
+        ESP_LOGE(TAG_T2V_MODULE_USB, "Transfer on endpoint 0x%02x invalid (transferred %d bytes)", ep_addr,
+                 xferred_bytes);
         break;
     }
     return true;
@@ -147,18 +156,19 @@ static usbd_class_driver_t const app_driver =
 #if CFG_TUSB_DEBUG >= 2
     .name = "T2V_MODULE",
 #endif
-    .init             = init,
-    .reset            = reset,
-    .open             = open,
+    .init = init,
+    .reset = reset,
+    .open = open,
     .control_xfer_cb = control_request_cb,
-    .xfer_cb          = xfer_cb,
-    .sof              = NULL
+    .xfer_cb = xfer_cb,
+    .sof = NULL
 };
 
 /**
  * @brief inform the stack about our custom driver
  */
-usbd_class_driver_t const *usbd_app_driver_get_cb(uint8_t *driver_count) {
+usbd_class_driver_t const* usbd_app_driver_get_cb(uint8_t* driver_count)
+{
     // we only add one additional driver
     *driver_count = 1;
     return &app_driver; // return the address of the custom driver
@@ -171,9 +181,10 @@ usbd_class_driver_t const *usbd_app_driver_get_cb(uint8_t *driver_count) {
  * For Linux-based Hosts: Reflects the SetConfiguration() request from the Host Driver.
  * For Win-based Hosts: SetConfiguration() request is present only with available Class in device descriptor.
  */
-void device_event_handler(tinyusb_event_t *event, __unused void *arg)
+void device_event_handler(tinyusb_event_t* event, __unused void* arg)
 {
-    switch (event->id) {
+    switch (event->id)
+    {
     case TINYUSB_EVENT_ATTACHED:
         // Device has been attached to the USB Host and configured
         ESP_LOGI(TAG_T2V_MODULE_USB, "Device attached");

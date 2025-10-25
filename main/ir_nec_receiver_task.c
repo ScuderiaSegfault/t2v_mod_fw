@@ -152,26 +152,32 @@ static void parse_and_send_nec_frame(rmt_symbol_word_t* rmt_nec_symbols, size_t 
             ESP_LOGD(TAG_T2V_MODULE_NEC_RCV, "Address=%04X, Command=%04X", s_nec_code_address, s_nec_code_command);
 
             const uint8_t frame_address = *(unsigned char*)&s_nec_code_address;
-            if (frame_address >= 0xf0 && frame_address <= 0xfe) {    // reserved addresses, ignore
+            if (frame_address >= 0xf0 && frame_address <= 0xfe)
+            {
+                // reserved addresses, ignore
                 ESP_LOGW(TAG_T2V_MODULE_NEC_RCV, "Received frame with reserved address %02x", frame_address);
                 break;
             }
-            if (frame_address <= 0x0f)   // multicast address, check multicast mask
+            if (frame_address <= 0x0f) // multicast address, check multicast mask
             {
                 const uint16_t multicast_mask = read_multicast_mask();
                 const uint16_t address_bit = 0x01 << frame_address;
 
                 if ((multicast_mask & address_bit) != address_bit)
                 {
-                    ESP_LOGD(TAG_T2V_MODULE_NEC_RCV, "Received frame with unregistered multicast address %02x", frame_address);
+                    ESP_LOGD(TAG_T2V_MODULE_NEC_RCV, "Received frame with unregistered multicast address %02x",
+                             frame_address);
                     break;
                 }
-            } else if (frame_address != 0xff)   // only unicast addresses and broadcast remaining, broadcast is always forwarded
+            }
+            else if (frame_address != 0xff)
+            // only unicast addresses and broadcast remaining, broadcast is always forwarded
             {
                 const uint8_t unicast_address = read_unicast_address();
                 if (unicast_address != frame_address)
                 {
-                    ESP_LOGD(TAG_T2V_MODULE_NEC_RCV, "Received frame for different unicast address %02x", frame_address);
+                    ESP_LOGD(TAG_T2V_MODULE_NEC_RCV, "Received frame for different unicast address %02x",
+                             frame_address);
                     break;
                 }
             }
@@ -193,7 +199,8 @@ static void parse_and_send_nec_frame(rmt_symbol_word_t* rmt_nec_symbols, size_t 
                     ESP_LOGE(TAG_T2V_MODULE_NEC_RCV, "NEC IR data sent failed");
                 }
             }
-        } else
+        }
+        else
         {
             ESP_LOGW(TAG_T2V_MODULE_NEC_RCV, "Unable to parse NEC frame");
         }
@@ -213,7 +220,7 @@ static void parse_and_send_nec_frame(rmt_symbol_word_t* rmt_nec_symbols, size_t 
 
 static bool rmt_rx_done_callback(rmt_channel_handle_t channel, const rmt_rx_done_event_data_t* edata, void* user_data)
 {
-    (void) channel;
+    (void)channel;
 
     BaseType_t high_task_wakeup = pdFALSE;
     QueueHandle_t receive_queue = user_data;
