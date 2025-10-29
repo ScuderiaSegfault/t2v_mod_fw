@@ -16,8 +16,7 @@
 
 
 #define IR_RESOLUTION_HZ     1000000 // 1MHz resolution, 1 tick = 1us
-#define IR_TX_GPIO_NUM       18
-#define IR_RX_GPIO_NUM       GPIO_NUM_23
+#define IR_RX_GPIO_NUM       GPIO_NUM_20
 #define IR_NEC_DECODE_MARGIN 200     // Tolerance for parsing RMT symbols into bit stream
 
 /**
@@ -149,7 +148,7 @@ static void parse_and_send_nec_frame(rmt_symbol_word_t* rmt_nec_symbols, size_t 
     case 34: // NEC normal frame
         if (nec_parse_frame(rmt_nec_symbols))
         {
-            ESP_LOGD(TAG_T2V_MODULE_NEC_RCV, "Address=%04X, Command=%04X", s_nec_code_address, s_nec_code_command);
+            ESP_LOGI(TAG_T2V_MODULE_NEC_RCV, "Address=%04X, Command=%04X", s_nec_code_address, s_nec_code_command);
 
             const uint8_t frame_address = *(unsigned char*)&s_nec_code_address;
             if (frame_address >= 0xf0 && frame_address <= 0xfe)
@@ -235,7 +234,7 @@ void ir_nec_task_main(void* data)
 
     ESP_LOGI(TAG_T2V_MODULE_NEC_RCV, "create RMT RX channel");
     const rmt_rx_channel_config_t rx_channel_cfg = {
-        .gpio_num = GPIO_NUM_23,
+        .gpio_num = IR_RX_GPIO_NUM,
         .clk_src = RMT_CLK_SRC_DEFAULT,
         .resolution_hz = IR_RESOLUTION_HZ,
         .mem_block_symbols = 64, // amount of RMT symbols that the channel can store at a time
