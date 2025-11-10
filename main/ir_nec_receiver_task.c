@@ -15,10 +15,6 @@
 #include "ir_nec_encoder.h"
 
 
-#define IR_RESOLUTION_HZ     1000000 // 1MHz resolution, 1 tick = 1us
-#define IR_RX_GPIO_NUM       GPIO_NUM_20
-#define IR_NEC_DECODE_MARGIN 200     // Tolerance for parsing RMT symbols into bit stream
-
 /**
  * @brief NEC timing spec
  */

@@ -5,6 +5,8 @@
 #ifndef T2V_MODULE_FW_COMMON_H
 #define T2V_MODULE_FW_COMMON_H
 
+#include <stdint.h>
+
 #define FW_VERSION_MAJOR (0)
 #define FW_VERSION_MINOR (1)
 #define FW_VERSION_PATCH (0)
@@ -14,11 +16,19 @@
 #define TAG_T2V_MODULE_NEC_DECODER "t2v_module::nec::decoder"
 #define TAG_T2V_MODULE_USB "t2v_module::usb"
 #define TAG_T2V_MODULE_BLE "t2v_module::ble"
+#define TAG_T2V_MODULE_LED "t2v_module::led"
 
 #define T2V_NVS_STORAGE_NAMESPACE "t2v_module"
 #define T2V_NVS_STORAGE_KEY_ADDRESS_CONFIG "address_config"
 
-#include <stdint.h>
+#define IR_RESOLUTION_HZ     1000000 // 1MHz resolution, 1 tick = 1us
+#define IR_RX_GPIO_NUM       GPIO_NUM_20
+#define IR_NEC_DECODE_MARGIN 200     // Tolerance for parsing RMT symbols into bit stream
+
+#define LED_DRIVER_SDI GPIO_NUM_25
+#define LED_DRIVER_CLK GPIO_NUM_24
+#define LED_DRIVER_LE GPIO_NUM_21
+#define LED_DRIVER_OE GPIO_NUM_22
 
 #include "esp_cpu.h"
 #include "esp_log.h"
@@ -32,6 +42,7 @@
 void ir_nec_task_main(void*);
 void usb_device_task_main(void*);
 void ble_task_main(void*);
+void led_driver_task_main(void *);
 
 // Global state
 

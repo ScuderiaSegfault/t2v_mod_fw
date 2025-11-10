@@ -4,11 +4,14 @@ idf_component_register(SRCS
         "ir_nec_receiver_task.c"
         "usb_device_task.c"
         "ble_task.c"
+        "led_driver_task.c"
         PRIV_REQUIRES
         bt
         nvs_flash
         esp_hosted
         esp_driver_rmt
+        esp_driver_spi
+        esp_driver_gpio
         esp_tinyusb
         INCLUDE_DIRS
         ""

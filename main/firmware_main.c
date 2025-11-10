@@ -16,6 +16,7 @@
 static TaskHandle_t ir_nec_task = NULL;
 static TaskHandle_t usb_device_task = NULL;
 static TaskHandle_t ble_device_task = NULL;
+static TaskHandle_t led_driver_task = NULL;
 
 static QueueHandle_t queues[2];
 
@@ -97,5 +98,14 @@ void app_main(void)
         queues + 1,
         tskIDLE_PRIORITY,
         &ble_device_task
+    );
+
+    xTaskCreate(
+        led_driver_task_main,
+        "led_driver_task",
+        4096,
+        NULL,
+        tskIDLE_PRIORITY,
+        &led_driver_task
     );
 }
