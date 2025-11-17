@@ -6,7 +6,7 @@
 
 #include "esp_check.h"
 #include "ir_nec_encoder.h"
-#include "common.h"
+#include "../t2v_config.h"
 
 
 typedef struct

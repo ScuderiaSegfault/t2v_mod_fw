@@ -1,0 +1,3 @@
+config T2V_ETHERNET_ENABLE
+    bool "Ethernet Task"
+    default y if T2V_REFERENCE_SENDER

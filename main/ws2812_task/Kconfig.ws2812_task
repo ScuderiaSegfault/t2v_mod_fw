@@ -1,0 +1,28 @@
+
+menuconfig T2V_WS2812_ENABLE
+    bool "WS2812 Task"
+
+if T2V_WS2812_ENABLE
+
+    choice T2V_WS2812_GPIO
+        prompt "GPIO"
+        depends on T2V_USE_PCB
+
+        config T2V_WS2812_GPIO_07
+            bool "GPIO 7 (J10_3)"
+    endchoice
+
+    config T2V_WS2812_GPIO_NUM
+        int
+        prompt "GPIO" if !T2V_USE_PCB
+        default 7 if T2V_WS2812_GPIO_07
+
+    config T2V_WS2812_RMT_FREQUENCY
+        int "RMT Frequency"
+        default 10000000
+
+    config T2V_WS2812_LED_COUNT
+        int "LED Count"
+        default 40
+
+endif

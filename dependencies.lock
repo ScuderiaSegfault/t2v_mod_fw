@@ -24,7 +24,7 @@ dependencies:
       type: service
     version: 2.3.2
   espressif/esp_serial_slave_link:
-    component_hash: 7cd3bae703cc6136b578ef521b2f9df3171d029775a3558f0efdb200a3b04f57
+    component_hash: ac1776806de0a6e371c84e87898bb983e19ce62aa7f1e2e5c4a3b0234a575d2c
     dependencies:
     - name: idf
       require: private
@@ -32,7 +32,7 @@ dependencies:
     source:
       registry_url: https://components.espressif.com
       type: service
-    version: 1.1.1~1
+    version: 1.1.2
   espressif/esp_tinyusb:
     component_hash: a8558cc89dae68552cb7a20123ffcb8db81a8a25bd560bc4d5b2f60a12bd6afb
     dependencies:
@@ -91,11 +91,20 @@ dependencies:
     source:
       type: idf
     version: 5.5.0
+  zenoh-pico:
+    component_hash: e25c4b09ccf31e20f9e7aad0d691dbb14d5eb1f92b2db41fc3540b64345584d7
+    dependencies: []
+    source:
+      git: https://github.com/georgevio/ESP32-Zenoh.git
+      path: components/zenoh-pico
+      type: git
+    version: 7b1c28ff3b4fe6478dc6018c8027665b2022a43c
 direct_dependencies:
 - espressif/esp_hosted
 - espressif/esp_tinyusb
 - espressif/esp_wifi_remote
 - idf
-manifest_hash: d5f0a1ca436f7e06d65eadf34146c4720ca36452f396f273e3fc7df4e5bde8d6
+- zenoh-pico
+manifest_hash: f27e8e091d43772f88995b1a522f21ca53e5cc1146c351e02cc918855c40dc1b
 target: esp32p4
 version: 2.0.0

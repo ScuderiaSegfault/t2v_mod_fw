@@ -1,0 +1,23 @@
+
+menuconfig T2V_IR_NEC_RX_ENABLE
+    bool "IR NEC Receiver Task"
+    default y if T2V_REFERENCE_RECEIVER
+    select T2V_ADDRESS_CONFIG_ENABLE
+
+if T2V_IR_NEC_RX_ENABLE
+
+    choice T2V_IR_NEC_RX_GPIO
+        prompt "GPIO"
+        depends on T2V_USE_PCB
+
+        config T2V_IR_NEC_RX_GPIO_20
+             bool "GPIO 20"
+
+    endchoice
+
+    config T2V_IR_NEC_RX_GPIO_NUM
+        int
+        prompt "GPIO" if !T2V_USE_PCB
+        default 20 if T2V_IR_NEC_RX_GPIO_20
+
+endif

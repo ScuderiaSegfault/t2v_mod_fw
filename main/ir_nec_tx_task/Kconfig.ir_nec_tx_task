@@ -1,0 +1,25 @@
+
+menuconfig T2V_IR_NEC_TX_ENABLE
+    bool "IR NEC Sender Task"
+    default y if T2V_REFERENCE_SENDER
+
+if T2V_IR_NEC_TX_ENABLE
+
+choice T2V_IR_NEC_TX_GPIO
+    prompt "GPIO"
+    depends on T2V_USE_PCB
+
+    config T2V_IR_NEC_TX_GPIO_23
+        bool "GPIO 23 (J9_3/J9_4/D2)"
+
+    config T2V_IR_NEC_TX_GPIO_07
+        bool "GPIO 7 (J10_3)"
+endchoice
+
+config T2V_IR_NEC_TX_GPIO_NUM
+    int
+    prompt "GPIO" if !T2V_USE_PCB
+    default 7 if T2V_IR_NEC_TX_GPIO_07
+    default 23 if T2V_IR_NEC_TX_GPIO_23
+
+endif

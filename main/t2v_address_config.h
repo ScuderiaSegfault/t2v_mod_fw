@@ -1,51 +1,19 @@
 //
-// Created by felix on 10.10.25.
+// Created by felix on 17.11.25.
 //
 
-#ifndef T2V_MODULE_FW_COMMON_H
-#define T2V_MODULE_FW_COMMON_H
+#ifndef T2V_MOD_FW_ADDRESS_CONFIG_H
+#define T2V_MOD_FW_ADDRESS_CONFIG_H
 
 #include <stdint.h>
-
-#define FW_VERSION_MAJOR (0)
-#define FW_VERSION_MINOR (1)
-#define FW_VERSION_PATCH (0)
-
-#define TAG_T2V_MODULE "tv2_module"
-#define TAG_T2V_MODULE_NEC_RCV "t2v_module::nec"
-#define TAG_T2V_MODULE_NEC_DECODER "t2v_module::nec::decoder"
-#define TAG_T2V_MODULE_USB "t2v_module::usb"
-#define TAG_T2V_MODULE_BLE "t2v_module::ble"
-#define TAG_T2V_MODULE_LED "t2v_module::led"
-
-#define T2V_NVS_STORAGE_NAMESPACE "t2v_module"
-#define T2V_NVS_STORAGE_KEY_ADDRESS_CONFIG "address_config"
-
-#define IR_RESOLUTION_HZ     1000000 // 1MHz resolution, 1 tick = 1us
-#define IR_RX_GPIO_NUM       GPIO_NUM_20
-#define IR_NEC_DECODE_MARGIN 200     // Tolerance for parsing RMT symbols into bit stream
-
-#define LED_DRIVER_SDI GPIO_NUM_25
-#define LED_DRIVER_CLK GPIO_NUM_24
-#define LED_DRIVER_LE GPIO_NUM_21
-#define LED_DRIVER_OE GPIO_NUM_22
+#include <sys/cdefs.h>
 
 #include "esp_cpu.h"
 #include "esp_log.h"
-#include "FreeRTOS.h"
 #include "nvs.h"
-#include "queue.h"
+#include "FreeRTOSConfig.h"
 
-
-// Entry points for tasks
-
-void ir_nec_task_main(void*);
-void usb_device_task_main(void*);
-void ble_task_main(void*);
-void led_driver_task_main(void *);
-
-// Global state
-
+#ifdef CONFIG_T2V_ADDRESS_CONFIG_ENABLE
 extern uint32_t address_config;
 
 __always_inline uint32_t read_address_config()
@@ -69,20 +37,20 @@ __always_inline void write_address_config_bare(uint32_t new_address_config)
 __always_inline esp_err_t write_address_config(nvs_handle_t nvs_handle, uint32_t new_address_config)
 {
     write_address_config_bare(new_address_config);
-    return nvs_set_u32(nvs_handle, T2V_NVS_STORAGE_KEY_ADDRESS_CONFIG, new_address_config);
+    return nvs_set_u32(nvs_handle, CONFIG_T2V_ADDRESS_CONFIG_NVS_KEY, new_address_config);
 }
 
 __always_inline void write_address_config_to_nvs(uint32_t new_address_config)
 {
     nvs_handle_t nvs_handle;
-    esp_err_t esp_err = nvs_open(T2V_NVS_STORAGE_NAMESPACE, NVS_READWRITE, &nvs_handle);
+    esp_err_t esp_err = nvs_open(CONFIG_T2V_NVS_NAMESPACE, NVS_READWRITE, &nvs_handle);
     if (esp_err != ESP_OK)
     {
         ESP_LOGE(TAG_T2V_MODULE, "Error (%s) opening NVS handle!", esp_err_to_name(esp_err));
         return;
     }
 
-    esp_err = nvs_set_u32(nvs_handle, T2V_NVS_STORAGE_KEY_ADDRESS_CONFIG, new_address_config);
+    esp_err = nvs_set_u32(nvs_handle, CONFIG_T2V_ADDRESS_CONFIG_NVS_KEY, new_address_config);
     if (esp_err != ESP_OK)
     {
         ESP_LOGE(TAG_T2V_MODULE, "Error (%s) opening NVS handle!", esp_err_to_name(esp_err));
@@ -142,14 +110,6 @@ __always_inline void write_multicast_mask(uint16_t multicast_mask)
     while (!esp_cpu_compare_and_set(&address_config, local_address_config, new_address_config));
     write_address_config_to_nvs(new_address_config);
 }
+#endif
 
-// Shared task structs
-
-struct QueueSlice
-{
-    size_t length;
-    size_t capacity;
-    QueueHandle_t* pointer;
-};
-
-#endif //T2V_MODULE_FW_COMMON_H
+#endif //T2V_MOD_FW_ADDRESS_CONFIG_H

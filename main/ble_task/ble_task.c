@@ -3,8 +3,8 @@
 //
 
 #include "FreeRTOS.h"
-#include "common.h"
 #include "ble_task.h"
+#include "ble_task_priv.h"
 #include "esp_gap_ble_api.h"
 #include "esp_gatts_api.h"
 #include "esp_bt_main.h"
@@ -15,6 +15,8 @@
 #include "esp_log.h"
 #include "nvs_flash.h"
 #include "portmacro.h"
+#include "../t2v_utils.h"
+#include "../t2v_address_config.h"
 #include "task.h"
 
 #define PROFILE_NUM                 1
@@ -29,6 +31,10 @@
 #define SCAN_RSP_CONFIG_FLAG        (1 << 1)
 
 static uint8_t adv_config_done = 0;
+
+#ifdef CONFIG_T2V_LED_DRIVER_ENABLE
+static QueueHandle_t led_driver_q;
+#endif
 
 static bool notify_ir_data = false;
 static esp_gatt_if_t notify_ir_gatts_if;
@@ -473,6 +479,18 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
             {
                 const uint8_t unicast_address = param->write.value[0];
                 write_unicast_address(unicast_address);
+
+#ifdef CONFIG_T2V_LED_DRIVER_ENABLE
+                LedUpdate_t update = {
+                    LED_UPDATE_SEVEN_SEGMENT_1_VALID | LED_UPDATE_SEVEN_SEGMENT_2_VALID,
+                    nibble_to_seven_segment((unicast_address & 0xf0) >> 4),
+                    nibble_to_seven_segment(unicast_address & 0x0f),
+                    0x00,
+                    0x00,
+                };
+                xQueueSendToBack(led_driver_q, &update, portMAX_DELAY);
+#endif
+
                 ESP_LOGI(TAG_T2V_MODULE_BLE, "updated unicast address: %02x", param->write.value[0]);
             }
             else if (gatt_db_handle_table[IDX_CHAR_VAL_MULTICAST] == param->write.handle && param->write.len == 2)
@@ -591,9 +609,12 @@ static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_
 }
 
 
-void ble_task_main(void* task_params)
+void ble_task_main(void* params)
 {
-    const QueueHandle_t* ir_data_queue = task_params;
+    const BleTaskParams_t* task_params = params;
+#ifdef CONFIG_T2V_LED_DRIVER_ENABLE
+    led_driver_q = task_params->out_led_driver;
+#endif
 
     /* Initialize NVS. */
     esp_err_t ret = nvs_flash_init();
@@ -667,7 +688,7 @@ void ble_task_main(void* task_params)
 
     while (1)
     {
-        if (xQueueReceive(*ir_data_queue, &data, pdMS_TO_TICKS(10)))
+        if (xQueueReceive(task_params->in_ir_nec, &data, pdMS_TO_TICKS(10)))
         {
             if (notify_ir_data)
             {

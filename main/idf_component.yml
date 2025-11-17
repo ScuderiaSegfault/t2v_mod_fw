@@ -23,3 +23,6 @@ dependencies:
     rules:
       - if: target in [esp32p4, esp32h2]
     version: '0.15.0'
+  zenoh-pico:
+    git: https://github.com/georgevio/ESP32-Zenoh.git
+    path: "components/zenoh-pico"

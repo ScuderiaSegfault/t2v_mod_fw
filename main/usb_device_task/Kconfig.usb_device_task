@@ -1,0 +1,5 @@
+
+config T2V_USB_DEVICE_ENABLE
+    bool "USB Device Task"
+    default y if T2V_REFERENCE_RECEIVER
+    select T2V_IR_NEC_RX_ENABLE

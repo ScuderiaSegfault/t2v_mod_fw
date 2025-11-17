@@ -1,0 +1,49 @@
+//
+// Created by felix on 15.11.25.
+//
+
+#ifndef T2V_MOD_FW_ZENOH_TASK_H
+#define T2V_MOD_FW_ZENOH_TASK_H
+
+#include "FreeRTOS.h"
+#include "queue.h"
+
+#include "../t2v_config.h"
+
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+
+#ifdef CONFIG_T2V_ZENOH_ROUTER_LOCATOR_PROTOCOL_TCP
+#define T2V_ZENOH_LOCATOR ("tcp/" CONFIG_T2V_ZENOH_ROUTER_LOCATOR_HOST ":" STR(CONFIG_T2V_ZENOH_ROUTER_LOCATOR_PORT))
+#elif CONFIG_T2V_ZENOH_ROUTER_LOCATOR_PROTOCOL_UDP
+#define T2V_ZENOH_LOCATOR ("udp/" CONFIG_T2V_ZENOH_ROUTER_LOCATOR_HOST ":" STR(CONFIG_T2V_ZENOH_ROUTER_LOCATOR_PORT))
+#endif
+
+#ifdef CONFIG_T2V_CAP_SEND_IR_FRAMES
+#define CONFIG_T2V_CAP_SEND_IR_FRAMES_VALUE DEVICE_CAP_IR_SENDER
+#else
+#define CONFIG_T2V_CAP_SEND_IR_FRAMES_VALUE (0x00)
+#endif
+
+#ifdef CONFIG_T2V_CAP_START_LIGHTS
+#define CONFIG_T2V_CAP_START_LIGHTS_VALUE DEVICE_CAP_STARTING_LIGHTS
+#else
+#define CONFIG_T2V_CAP_START_LIGHTS_VALUE (0x00)
+#endif
+
+#define T2V_ZENOH_CAPABILITIES (CONFIG_T2V_CAP_SEND_IR_FRAMES_VALUE | CONFIG_T2V_CAP_START_LIGHTS_VALUE)
+
+typedef struct ZenohTaskParams
+{
+    QueueHandle_t in_nic_status;
+#ifdef CONFIG_T2V_CAP_SEND_IR_FRAMES
+    QueueHandle_t out_ir_frame;
+#endif
+#ifdef CONFIG_T2V_LED_DRIVER_ENABLE
+    QueueHandle_t out_led_driver;
+#endif
+} ZenohTaskParams_t;
+
+void zenoh_task_main(void* params);
+
+#endif //T2V_MOD_FW_ZENOH_TASK_H

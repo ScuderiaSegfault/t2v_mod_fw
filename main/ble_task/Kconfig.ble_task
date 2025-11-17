@@ -1,0 +1,17 @@
+menuconfig T2V_BLE_ENABLE
+    bool "BLE Task"
+    default y if T2V_REFERENCE_RECEIVER
+    select T2V_ADDRESS_CONFIG_ENABLE
+
+if T2V_BLE_ENABLE
+
+    config T2V_BLE_ADV_NAME
+        string "Device Name (BLE Adv.)"
+
+    config T2V_BLE_CAR_ID
+        string "Car ID"
+
+    config T2V_BLE_TEAM_NAME
+        string "Team Name"
+
+endif

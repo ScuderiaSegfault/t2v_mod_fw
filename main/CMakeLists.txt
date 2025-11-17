@@ -1,10 +1,17 @@
+
 idf_component_register(SRCS
-        "firmware_main.c"
-        "ir_nec_encoder.c"
-        "ir_nec_receiver_task.c"
-        "usb_device_task.c"
-        "ble_task.c"
-        "led_driver_task.c"
+        "t2v_init.c"
+        "ir_nec_tx_task/ir_nec_encoder.c"
+        "ir_nec_rx_task/ir_nec_rx_task.c"
+        "usb_device_task/usb_device_task.c"
+        "ble_task/ble_task.c"
+        "led_driver_task/led_driver_task.c"
+        "ir_nec_tx_task/ir_nec_tx_task.c"
+        "btn_input_task/btn_input_task.c"
+        "ws2812_task/led_strip_encoder.c"
+        "ws2812_task/ws2812_task.c"
+        "ethernet_task/ethernet_task.c"
+        "zenoh_task/zenoh_task.c"
         PRIV_REQUIRES
         bt
         nvs_flash
@@ -13,6 +20,13 @@ idf_component_register(SRCS
         esp_driver_spi
         esp_driver_gpio
         esp_tinyusb
+        esp_eth
+        ethernet_init
+        zenoh-pico
+        esp_driver_uart
         INCLUDE_DIRS
         ""
 )
+
+add_definitions(-DZENOHPICO_PLATFORM_ESP32)
+add_definitions(-DZENOH_ESPIDF=1)

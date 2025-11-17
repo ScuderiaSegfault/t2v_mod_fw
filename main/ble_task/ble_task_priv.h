@@ -2,13 +2,13 @@
 // Created by felix on 20.10.25.
 //
 
-#ifndef T2V_MOD_FW_BLE_TASK_H
-#define T2V_MOD_FW_BLE_TASK_H
+#ifndef T2V_MOD_FW_BLE_TASK_PRIV_H
+#define T2V_MOD_FW_BLE_TASK_PRIV_H
 #include "esp_gatts_api.h"
 
-#define DEVICE_NAME                 "car7"
-#define TEAM_NAME                   "Scuderia Segfault"
-#define CAR_ID                      "car7"
+#define DEVICE_NAME                 CONFIG_T2V_BLE_ADV_NAME
+#define TEAM_NAME                   CONFIG_T2V_BLE_TEAM_NAME
+#define CAR_ID                      CONFIG_T2V_BLE_CAR_ID
 #define GATTS_CHAR_VAL_LEN_MAX      500
 
 static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if,

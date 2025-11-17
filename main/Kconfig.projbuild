@@ -1,0 +1,81 @@
+menu "T2V Module"
+
+choice T2V_PRESET
+    prompt "T2V Preset"
+
+    config T2V_PRESET_NONE
+        bool "None"
+
+    config T2V_REFERENCE_RECEIVER
+        bool "Reference Receiver"
+        select T2V_BLE_ENABLE
+        select T2V_IR_NEC_RX_ENABLE
+        select T2V_USE_PCB
+
+    config T2V_REFERENCE_SENDER
+        bool "Reference Sender"
+        select T2V_ZENOH_ENABLE
+        select T2V_IR_NEC_TX_ENABLE
+        select T2V_USE_PCB
+
+endchoice
+
+config T2V_USE_PCB
+    bool "Use reference PCB"
+    default y
+
+menu "Capabilities"
+
+config T2V_CAP_SEND_IR_FRAMES
+    bool "Capability: Send IR Frames"
+    depends on T2V_ZENOH_ENABLE && T2V_IR_NEC_TX_ENABLE
+    default y
+
+config T2V_CAP_START_LIGHTS
+    bool "Capability: Start Lights"
+    depends on T2V_ZENOH_ENABLE && T2V_WS2812_ENABLE
+    default y
+
+endmenu
+
+
+config T2V_NVS_NAMESPACE
+    string "NVS Namespace"
+    default "t2v_module"
+
+menuconfig T2V_ADDRESS_CONFIG_ENABLE
+    bool "Store Address Config"
+    default y
+
+if T2V_ADDRESS_CONFIG_ENABLE
+
+    config T2V_ADDRESS_CONFIG_NVS_KEY
+        string "NVS Storage Key"
+        default "address_config"
+endif
+
+menu "Tasks"
+
+rsource "ble_task/Kconfig.ble_task"
+rsource "btn_input_task/Kconfig.btn_input_task"
+rsource "ethernet_task/Kconfig.ethernet_task"
+rsource "ir_nec_rx_task/Kconfig.ir_nec_rx_task"
+rsource "ir_nec_tx_task/Kconfig.ir_nec_tx_task"
+rsource "led_driver_task/Kconfig.led_driver_task"
+rsource "usb_device_task/Kconfig.usb_device_task"
+rsource "ws2812_task/Kconfig.ws2812_task"
+rsource "zenoh_task/Kconfig.zenoh_task"
+
+endmenu
+
+menu "Drivers"
+
+    config T2V_RMT_FREQUENCY
+        int "RMT Frequency [Hz]"
+        default 1000000
+
+endmenu
+
+
+
+endmenu # T2V Module

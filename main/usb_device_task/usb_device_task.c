@@ -1,5 +1,5 @@
 
-#include "common.h"
+#include "../t2v.h"
 #include "esp_log.h"
 #include "tinyusb_default_config.h"
 #include "tinyusb.h"
@@ -198,9 +198,9 @@ void device_event_handler(tinyusb_event_t* event, __unused void* arg)
     }
 }
 
-void usb_device_task_main(void* args)
+void usb_device_task_main(void* params)
 {
-    QueueHandle_t* ir_data_queue = args;
+    UsbDeviceTaskParams_t* task_params = params;
 
     ESP_LOGI(TAG_T2V_MODULE_USB, "initializing USB stack");
     tinyusb_config_t tusb_cfg = TINYUSB_DEFAULT_CONFIG(device_event_handler);
@@ -220,7 +220,7 @@ void usb_device_task_main(void* args)
 
     while (1)
     {
-        if (xQueueReceive(*ir_data_queue, &data, pdMS_TO_TICKS(10)))
+        if (xQueueReceive(task_params->in_ir_data, &data, pdMS_TO_TICKS(10)))
         {
             if (tud_mounted())
             {

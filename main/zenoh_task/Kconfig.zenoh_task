@@ -1,0 +1,38 @@
+
+menuconfig T2V_ZENOH_ENABLE
+    bool "Zenoh Task"
+    default y if T2V_REFERENCE_SENDER
+    select T2V_ETHERNET_ENABLE
+
+if T2V_ZENOH_ENABLE
+    choice T2V_ZENOH_ROUTER_LOCATOR_PROTOCOL
+        prompt "Router Protocol"
+
+        config T2V_ZENOH_ROUTER_LOCATOR_PROTOCOL_TCP
+            bool "tcp"
+
+        config T2V_ZENOH_ROUTER_LOCATOR_PROTOCOL_UDP
+            bool "udp"
+    endchoice
+
+    config T2V_ZENOH_ROUTER_LOCATOR_HOST
+        string
+        prompt "Router Host"
+        help
+            Hostname or IP address of the router
+
+    config T2V_ZENOH_ROUTER_LOCATOR_PORT
+        int
+        prompt "Router Port"
+        help
+            Port of the router
+        default 7447
+
+    config T2V_ZENOH_BASE_KEYEXPR
+        string
+        prompt "Base Key Expression"
+        default "services/t2v"
+        help
+            Base key expression used to derive other key expressions
+
+endif

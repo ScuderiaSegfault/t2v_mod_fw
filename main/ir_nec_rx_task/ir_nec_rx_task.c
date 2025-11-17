@@ -5,14 +5,13 @@
  */
 
 
-#include "common.h"
-#include "freertos/FreeRTOS.h"
+#include "ir_nec_rx_task.h"
 #include "freertos/task.h"
-#include "freertos/queue.h"
 #include "esp_log.h"
 #include "driver/rmt_tx.h"
 #include "driver/rmt_rx.h"
-#include "ir_nec_encoder.h"
+#include "driver/gpio.h"
+#include "../t2v_address_config.h"
 
 
 /**
@@ -26,6 +25,8 @@
 #define NEC_PAYLOAD_ONE_DURATION_1   1690
 #define NEC_REPEAT_CODE_DURATION_0   9000
 #define NEC_REPEAT_CODE_DURATION_1   2250
+
+#define IR_NEC_DECODE_MARGIN 200     // Tolerance for parsing RMT symbols into bit stream
 
 static struct QueueSlice* ir_data_queue;
 
@@ -129,7 +130,7 @@ static bool nec_parse_frame_repeat(const rmt_symbol_word_t* rmt_nec_symbols)
 /**
  * @brief Decode RMT symbols into NEC scan code and send the data to other tasks
  */
-static void parse_and_send_nec_frame(rmt_symbol_word_t* rmt_nec_symbols, size_t symbol_num)
+static void parse_and_send_nec_frame(rmt_symbol_word_t* rmt_nec_symbols, size_t symbol_num, const QueueHandleVec_t* queues)
 {
     ESP_LOGD(TAG_T2V_MODULE_NEC_RCV, "NEC frame start---");
     for (size_t i = 0; i < symbol_num; i++)
@@ -183,9 +184,9 @@ static void parse_and_send_nec_frame(rmt_symbol_word_t* rmt_nec_symbols, size_t 
             data[3] = *((unsigned char*)&s_nec_code_command + 1);
             data[2] = *(unsigned char*)&s_nec_code_command;
 
-            for (size_t i = 0; i < ir_data_queue->length; i++)
+            for (size_t i = 0; i < queues->len; i++)
             {
-                if (xQueueSendToBack(ir_data_queue->pointer[i], data, 0))
+                if (xQueueSendToBack(queues->pointer[i], data, 0))
                 {
                     ESP_LOGD(TAG_T2V_MODULE_NEC_RCV, "NEC IR data sent");
                 }
@@ -224,15 +225,15 @@ static bool rmt_rx_done_callback(rmt_channel_handle_t channel, const rmt_rx_done
     return high_task_wakeup == pdTRUE;
 }
 
-void ir_nec_task_main(void* data)
+void ir_nec_task_main(void* params)
 {
-    ir_data_queue = (struct QueueSlice*)data;
+    IrNecRxTaskParams_t *task_params = params;
 
     ESP_LOGI(TAG_T2V_MODULE_NEC_RCV, "create RMT RX channel");
     const rmt_rx_channel_config_t rx_channel_cfg = {
-        .gpio_num = IR_RX_GPIO_NUM,
+        .gpio_num = CONFIG_T2V_IR_NEC_RX_GPIO_NUM,
         .clk_src = RMT_CLK_SRC_DEFAULT,
-        .resolution_hz = IR_RESOLUTION_HZ,
+        .resolution_hz = RMT_RESOLUTION_HZ,
         .mem_block_symbols = 64, // amount of RMT symbols that the channel can store at a time
     };
     rmt_channel_handle_t rx_channel = NULL;
@@ -254,13 +255,6 @@ void ir_nec_task_main(void* data)
         // the longest duration for NEC signal is 9000us, 12000000ns > 9000us, the receive won't stop early
     };
 
-    ESP_LOGI(TAG_T2V_MODULE_NEC_RCV, "install IR NEC encoder");
-    const ir_nec_encoder_config_t nec_encoder_cfg = {
-        .resolution = IR_RESOLUTION_HZ,
-    };
-    rmt_encoder_handle_t nec_encoder = NULL;
-    ESP_ERROR_CHECK(rmt_new_ir_nec_encoder(&nec_encoder_cfg, &nec_encoder));
-
     ESP_LOGI(TAG_T2V_MODULE_NEC_RCV, "enable RMT RX channel");
     ESP_ERROR_CHECK(rmt_enable(rx_channel));
 
@@ -269,13 +263,14 @@ void ir_nec_task_main(void* data)
     rmt_rx_done_event_data_t rx_data;
     // ready to receive
     ESP_ERROR_CHECK(rmt_receive(rx_channel, raw_symbols, sizeof(raw_symbols), &receive_config));
+
     while (true)
     {
         // wait for RX done signal
         if (xQueueReceive(receive_queue, &rx_data, pdMS_TO_TICKS(1000)) == pdPASS)
         {
             // parse the received symbols and print the result
-            parse_and_send_nec_frame(rx_data.received_symbols, rx_data.num_symbols);
+            parse_and_send_nec_frame(rx_data.received_symbols, rx_data.num_symbols, &task_params->out_ir_nec_frames);
             // start receive again
             ESP_ERROR_CHECK(rmt_receive(rx_channel, raw_symbols, sizeof(raw_symbols), &receive_config));
         }

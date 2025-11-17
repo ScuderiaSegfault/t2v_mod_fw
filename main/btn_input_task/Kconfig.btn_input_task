@@ -1,0 +1,35 @@
+menuconfig T2V_BTN_INPUT_ENABLE
+    bool "Button Input Task"
+    default y if T2V_REFERENCE_SENDER
+
+if T2V_BTN_INPUT_ENABLE
+
+    choice T2V_BTN_INPUT_SW1_GPIO
+        prompt "SW1 GPIO"
+        depends on T2V_USE_PCB
+
+        config T2V_BTN_INPUT_SW1_GPIO_32
+            bool "GPIO 32"
+
+    endchoice
+
+    config T2V_BTN_INPUT_SW1_GPIO_NUM
+        int
+        prompt "SW1 GPIO" if !T2V_USE_PCB
+        default 32 if T2V_BTN_INPUT_SW1_GPIO_32
+
+    choice T2V_BTN_INPUT_SW2_GPIO
+        prompt "SW2 GPIO"
+        depends on T2V_USE_PCB
+
+        config T2V_BTN_INPUT_SW2_GPIO_33
+            bool "GPIO 33"
+
+    endchoice
+
+    config T2V_BTN_INPUT_SW2_GPIO_NUM
+        int
+        prompt "SW2 GPIO" if !T2V_USE_PCB
+        default 33 if T2V_BTN_INPUT_SW2_GPIO_33
+
+endif

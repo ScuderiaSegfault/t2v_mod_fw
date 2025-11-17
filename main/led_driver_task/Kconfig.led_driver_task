@@ -1,0 +1,64 @@
+menuconfig T2V_LED_DRIVER_ENABLE
+    bool "LED Driver Task"
+    default y if T2V_REFERENCE_RECEIVER || T2V_REFERENCE_SENDER
+
+if T2V_LED_DRIVER_ENABLE
+
+    choice T2V_LED_DRIVER_SDI_GPIO
+        prompt "SDI GPIO"
+        depends on T2V_USE_PCB
+
+        config T2V_LED_DRIVER_SDI_GPIO_25
+            bool "GPIO 25"
+
+    endchoice
+
+    config T2V_LED_DRIVER_SDI_GPIO_NUM
+        int
+        prompt "SDI GPIO" if !T2V_USE_PCB
+        default 25 if T2V_LED_DRIVER_SDI_GPIO_25
+
+    choice T2V_LED_DRIVER_CLK_GPIO
+        prompt "CLK GPIO"
+        depends on T2V_USE_PCB
+
+        config T2V_LED_DRIVER_CLK_GPIO_24
+            bool "GPIO 24"
+
+    endchoice
+
+    config T2V_LED_DRIVER_CLK_GPIO_NUM
+        int
+        prompt "CLK GPIO" if !T2V_USE_PCB
+        default 24 if T2V_LED_DRIVER_CLK_GPIO_24
+
+    choice T2V_LED_DRIVER_LE_GPIO
+        prompt "LE GPIO"
+        depends on T2V_USE_PCB
+
+        config T2V_LED_DRIVER_LE_GPIO_21
+            bool "GPIO 21"
+
+    endchoice
+
+    config T2V_LED_DRIVER_LE_GPIO_NUM
+        int
+        prompt "LE GPIO" if !T2V_USE_PCB
+        default 21 if T2V_LED_DRIVER_LE_GPIO_21
+
+    choice T2V_LED_DRIVER_OE_GPIO
+        prompt "OE GPIO"
+        depends on T2V_USE_PCB
+
+        config T2V_LED_DRIVER_OE_GPIO_22
+            bool "GPIO 22"
+
+    endchoice
+
+    config T2V_LED_DRIVER_OE_GPIO_NUM
+        int
+        prompt "OE GPIO" if !T2V_USE_PCB
+        default 22 if T2V_LED_DRIVER_OE_GPIO_22
+
+
+endif
