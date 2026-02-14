@@ -97,6 +97,7 @@ void led_driver_task_main(void* params) {
     {
         if (xQueueReceive(task_params->in_led_updates, &update, pdMS_TO_TICKS(0)))
         {
+            ESP_LOGI(TAG_T2V_MODULE_LED, "update received: flags: %02X, leds: %02X, led_mask: %02X", update.flags, update.leds, update.leds_mask);
             if (update.flags == 0x00)
             {
                 continue;

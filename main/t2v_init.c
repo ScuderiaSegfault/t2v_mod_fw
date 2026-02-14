@@ -16,7 +16,7 @@ static BleTaskParams_t ble_task_params;
 static TaskHandle_t ble_device_task = NULL;
 #endif
 
-#ifdef CONFIG_T2V_IR_NEC_TX_ENABLE
+#ifdef CONFIG_T2V_BTN_INPUT_ENABLE
 static BtnInputTaskParams_t btn_input_task_params;
 static TaskHandle_t btn_input_task = NULL;
 #endif
@@ -108,6 +108,7 @@ void app_main(void)
 #ifdef CONFIG_T2V_BLE_ENABLE
     queue_handle_vec_push(&ir_nec_rx_task_params.out_ir_nec_frames, xQueueCreate(10, sizeof(uint8_t) * 4));
 #endif
+    ESP_LOGI(TAG_T2V_MODULE, "Initialized %d IR NEC RX queue(s)", IrNecRxQueueLast);
 #endif
 
 #ifdef CONFIG_T2V_USB_DEVICE_ENABLE

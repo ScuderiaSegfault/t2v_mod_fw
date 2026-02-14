@@ -12,6 +12,7 @@
 #include "esp_hosted_bluedroid.h"
 
 #include "esp_err.h"
+#include "esp_hosted.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
 #include "portmacro.h"
@@ -608,6 +609,34 @@ static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_
     while (0);
 }
 
+static void compare_versions(uint32_t slave_version)
+{
+    uint32_t host_version = ESP_HOSTED_VERSION_VAL(ESP_HOSTED_VERSION_MAJOR_1,
+                                                   ESP_HOSTED_VERSION_MINOR_1,
+                                                   ESP_HOSTED_VERSION_PATCH_1);
+
+    // Compare major.minor only (ignore patch level)
+    slave_version &= 0xFFFFFF00;
+    host_version &= 0xFFFFFF00;
+
+    if (host_version > slave_version)
+    {
+#ifndef CONFIG_ESP_HOSTED_FW_VERSION_MISMATCH_WARNING_SUPPRESS
+        ESP_LOGW(TAG_T2V_MODULE_BLE,
+                 "Version mismatch: Host [%u.%u.%u] > Co-proc [%u.%u.%u] ==> Upgrade co-proc to avoid RPC timeouts",
+                 ESP_HOSTED_VERSION_PRINTF_ARGS(host_version), ESP_HOSTED_VERSION_PRINTF_ARGS(slave_version));
+#endif
+    }
+    else if (host_version < slave_version)
+    {
+#ifndef CONFIG_ESP_HOSTED_FW_VERSION_MISMATCH_WARNING_SUPPRESS
+        ESP_LOGW(TAG_T2V_MODULE_BLE,
+                 "Version mismatch: Host [%u.%u.%u] < Co-proc [%u.%u.%u] ==> Upgrade host to avoid compatibility issues",
+                 ESP_HOSTED_VERSION_PRINTF_ARGS(host_version), ESP_HOSTED_VERSION_PRINTF_ARGS(slave_version));
+#endif
+    }
+}
+
 
 void ble_task_main(void* params)
 {
@@ -625,7 +654,39 @@ void ble_task_main(void* params)
     }
     ESP_ERROR_CHECK(ret);
 
-    /* initialize TRANSPORT first */
+    // initialise connection to co-processor
+    esp_hosted_connect_to_slave();
+
+    esp_hosted_coprocessor_fwver_t slave_version = {0};
+    ret = esp_hosted_get_coprocessor_fwversion(&slave_version);
+    if (ret != ESP_OK)
+    {
+        ESP_LOGW(TAG_T2V_MODULE_BLE, "Could not get slave firmware version (error: %s)", esp_err_to_name(ret));
+        ESP_LOGW(TAG_T2V_MODULE_BLE, "Proceeding without version compatibility check");
+    }
+
+    ESP_LOGI(TAG_T2V_MODULE_BLE, "Host firmware version: %d.%d.%d",
+             ESP_HOSTED_VERSION_MAJOR_1, ESP_HOSTED_VERSION_MINOR_1, ESP_HOSTED_VERSION_PATCH_1);
+    ESP_LOGI(TAG_T2V_MODULE_BLE, "Slave firmware version: %" PRIu32 ".%" PRIu32 ".%" PRIu32,
+             slave_version.major1, slave_version.minor1, slave_version.patch1);
+
+    uint32_t slave_ver = ESP_HOSTED_VERSION_VAL(slave_version.major1,
+                                                slave_version.minor1,
+                                                slave_version.patch1);
+    compare_versions(slave_ver);
+
+    // init bt controller
+    if (ESP_OK != esp_hosted_bt_controller_init())
+    {
+        ESP_LOGW(TAG_T2V_MODULE_BLE, "failed to init bt controller");
+    }
+
+    // enable bt controller
+    if (ESP_OK != esp_hosted_bt_controller_enable())
+    {
+        ESP_LOGW(TAG_T2V_MODULE_BLE, "failed to enable bt controller");
+    }
+
     hosted_hci_bluedroid_open();
 
     /* get HCI driver operations */
@@ -654,7 +715,6 @@ void ble_task_main(void* params)
         ESP_LOGE(TAG_T2V_MODULE_BLE, "%s enable bluetooth failed: %s", __func__, esp_err_to_name(ret));
         return;
     }
-
 
     ret = esp_ble_gatts_register_callback(gatts_event_handler);
     if (ret)

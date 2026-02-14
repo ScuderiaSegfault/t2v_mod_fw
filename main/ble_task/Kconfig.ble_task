@@ -2,6 +2,7 @@ menuconfig T2V_BLE_ENABLE
     bool "BLE Task"
     default y if T2V_REFERENCE_RECEIVER
     select T2V_ADDRESS_CONFIG_ENABLE
+    select T2V_IR_NEC_RX_ENABLE
 
 if T2V_BLE_ENABLE
 
