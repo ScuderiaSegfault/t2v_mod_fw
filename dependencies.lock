@@ -119,6 +119,6 @@ direct_dependencies:
 - espressif/esp_wifi_remote
 - idf
 - zenoh-pico
-manifest_hash: 394e5fd4d91b54080d49395a04904f5c12d2c3ce25acc22747dd8154d9d20f49
+manifest_hash: 84bf03b4701c6d49a1b6eef31bfe90501e73a00170cf8866711b525b2603d107
 target: esp32p4
 version: 2.0.0
