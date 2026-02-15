@@ -1,4 +1,24 @@
 dependencies:
+  esp_tinyusb:
+    component_hash: c37d705aa7c639461fbb83fd12d775bfd4f6bd88313d0aef3f30ab2102544092
+    dependencies:
+    - name: idf
+      version: '>=5.0'
+    - git: https://github.com/ScuderiaSegfault/tinyusb.git
+      name: tinyusb
+      path: .
+      public: true
+      version: v0.19.0-t2v
+    source:
+      git: https://github.com/ScuderiaSegfault/esp-usb.git
+      path: device/esp_tinyusb
+      type: git
+    targets:
+    - esp32s2
+    - esp32s3
+    - esp32p4
+    - esp32h4
+    version: 3d364dc104d75bd234c65f885971b81e2efa579e
   espressif/eppp_link:
     component_hash: 9472e6825f4bb71eca2b39cf1bc92659c1ac60bfd7416560ad033a7dd8641b17
     dependencies:
@@ -33,25 +53,6 @@ dependencies:
       registry_url: https://components.espressif.com
       type: service
     version: 1.1.2
-  espressif/esp_tinyusb:
-    component_hash: 6cc731885fb4415c1dfc63e660ee5629077c3b7352e7a5eccd035586f65bca11
-    dependencies:
-    - name: idf
-      require: private
-      version: '>=5.0'
-    - name: espressif/tinyusb
-      registry_url: https://components.espressif.com
-      require: public
-      version: '>=0.17.0~2'
-    source:
-      registry_url: https://components.espressif.com/
-      type: service
-    targets:
-    - esp32s2
-    - esp32s3
-    - esp32p4
-    - esp32h4
-    version: 2.1.0
   espressif/esp_wifi_remote:
     component_hash: 67efd839bd84efb94b149a28044f9918473e7f4facf709bf4121744e4927df09
     dependencies:
@@ -72,21 +73,6 @@ dependencies:
       registry_url: https://components.espressif.com/
       type: service
     version: 1.3.2
-  espressif/tinyusb:
-    component_hash: 5ea9d3b6d6b0734a0a0b3491967aa0e1bece2974132294dbda5dd2839b247bfa
-    dependencies:
-    - name: idf
-      require: private
-      version: '>=5.0'
-    source:
-      registry_url: https://components.espressif.com
-      type: service
-    targets:
-    - esp32s2
-    - esp32s3
-    - esp32p4
-    - esp32h4
-    version: 0.19.0~2
   espressif/wifi_remote_over_eppp:
     component_hash: ac4d13625cc9f88597cd612d2758580fac287d8ec731b606f2a0720d28cda6cd
     dependencies:
@@ -105,20 +91,35 @@ dependencies:
     source:
       type: idf
     version: 5.5.0
+  tinyusb:
+    component_hash: 48f6c8ceb60be2168f913169412dd78e0ddbaaeb9b6982a94dd1a96dd8c638e3
+    dependencies:
+    - name: idf
+      version: '>=5.0'
+    source:
+      git: https://github.com/ScuderiaSegfault/tinyusb.git
+      path: .
+      type: git
+    targets:
+    - esp32s2
+    - esp32s3
+    - esp32p4
+    - esp32h4
+    version: 79a225cc078891ecd615f2fcca8706641993c9d6
   zenoh-pico:
-    component_hash: e25c4b09ccf31e20f9e7aad0d691dbb14d5eb1f92b2db41fc3540b64345584d7
+    component_hash: 93ece2b2cec1a39f0a87719ab9dc2e1d8c8991352c3ef24a1ef8b0897923714c
     dependencies: []
     source:
-      git: https://github.com/georgevio/ESP32-Zenoh.git
-      path: components/zenoh-pico
+      git: https://github.com/ScuderiaSegfault/zenoh-pico.git
+      path: .
       type: git
-    version: 7b1c28ff3b4fe6478dc6018c8027665b2022a43c
+    version: 47da08fc99716a4c74dba46dced5ca7f193c380e
 direct_dependencies:
+- esp_tinyusb
 - espressif/esp_hosted
-- espressif/esp_tinyusb
 - espressif/esp_wifi_remote
 - idf
 - zenoh-pico
-manifest_hash: 84bf03b4701c6d49a1b6eef31bfe90501e73a00170cf8866711b525b2603d107
+manifest_hash: af9c92a1097611fe27e9e8686e87a56ae373418d3b6e248e59b5f673124b87be
 target: esp32p4
 version: 2.0.0
