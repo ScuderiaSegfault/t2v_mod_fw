@@ -2,7 +2,7 @@
 
 ## Build
 
-See [TODO]() for more build details.
+See [Setup instructions](https://github.com/ScuderiaSegfault/t2v_mod/blob/main/doc/setup/index.adoc) for more build details.
 
 ## Bill of Materials
 
@@ -13,5 +13,4 @@ See [TODO]() for more build details.
 
 ## TODOs
 
-- [ ] store configuration of addresses in NVS
 - [ ] allow address configuration with USB 

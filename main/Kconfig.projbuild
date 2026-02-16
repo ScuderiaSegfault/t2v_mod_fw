@@ -11,6 +11,7 @@ choice T2V_PRESET
         select T2V_BLE_ENABLE
         select T2V_IR_NEC_RX_ENABLE
         select T2V_USE_PCB
+        select T2V_USB_DEVICE_ENABLE
 
     config T2V_REFERENCE_SENDER
         bool "Reference Sender"
