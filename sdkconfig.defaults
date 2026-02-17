@@ -24,10 +24,7 @@ CONFIG_ESP_HOSTED_BLUEDROID_HCI_VHCI=y
 #
 # Configure large enough partition table
 #
-CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
-CONFIG_PARTITION_TABLE_FILENAME="partitions_singleapp_large.csv"
-CONFIG_PARTITION_TABLE_OFFSET=0x8000
-CONFIG_PARTITION_TABLE_MD5=y
+CONFIG_PARTITION_TABLE_SINGLE_APP_LARGE=y
 
 #
 # Configure hardware setting for Waveshare ESP32P4-Nano
